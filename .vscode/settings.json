@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.sage": "x3",
+        "locale": "c",
+        "string": "c"
+    }
+}
