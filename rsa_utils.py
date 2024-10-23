@@ -6,7 +6,20 @@ from Crypto.PublicKey import RSA
 import base64
 import rsa
 
-def pb_pem_to_int(file):
+def ECDSA_pem_to_int(file: str):
+    command = f"openssl ec -pubin -in {file} -text -noout"
+    try:
+        result = subprocess.check_output(command, shell = True, executable = "/bin/bash", stderr = subprocess.STDOUT)
+
+    except subprocess.CalledProcessError as cpe:
+        result = cpe.output
+        os.abort()
+    result = result.decode().replace(" ", "").replace("\n","").replace("\r","")
+    n = int(result.split("pub")[1].split("ASN1")[0], 16)
+    print(n)
+    return n
+
+def RSA_pem_to_int(file):
     #We suppose either the file is in the same folder than the programm
     #return a tuple (n,e)
     command = f"openssl rsa -pubin -in {file} -text -noout"
@@ -24,8 +37,7 @@ def pb_pem_to_int(file):
     return n,e
 
 def decipher_RSA(p,q,e,c):
-    if type(c)==str:
-        c = bytes_to_long(c)
+    c = bytes_to_long(c)
     phi = (p-1)*(q-1)
     d = pow(e, -1, phi)
     m = pow(c, d, p*q)
@@ -52,8 +64,6 @@ def decipher_RSA_formal(p,q,e,c):
         'p': p,
         'q': q
     }
-    pub_key = rsa.PublicKey(**old_pub_key)
-
     old_priv_key.update(old_pub_key)
     priv_key = rsa.PrivateKey(**old_priv_key)
 
@@ -84,7 +94,7 @@ def weiner_attack(n: int, e: int, l=10):
         convergents.append((num, den))
         if p1==0:
             break
-    T = pow(2,E,n)
+    T = pow(2,e,n)
     for fract in convergents:
         d = fract[1]
         if pow(T,d, n)==2:
@@ -148,4 +158,8 @@ def create_pem_key(n,p,q,e):
     print(f"File privite_key.pem is create ! Well done")
 
 if __name__=="__main__":
-    print("...")
+    n,e = RSA_pem_to_int("pubkey.pem")
+    p, q = 398075086424064937397125500550386491199064362342526708406385189575946388957261768583317, 472772146107435302536223071973048224632914695302097116459852171130520711256363590397527
+    c = b"e8oQDihsmkvjT3sZe+EE8lwNvBEsFegYF6+OOFOiR6gMtMZxxba/bIgLUD8pV3yEf0gOOfHuB5bC3vQmo7bE4PcIKfpFGZBA"
+    print(n==p*q)
+    m = decipher_RSA_formal(p, q, e, c)
